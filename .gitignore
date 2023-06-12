@@ -2,3 +2,5 @@ env/
 .vscode/
 .venv/
 __pycache__
+.replit
+index.html

@@ -1,10 +1,9 @@
-from http.server import HTTPServer, SimpleHTTPRequestHandler
-import datetime
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-import pandas
-from pprint import pprint
 import collections
+import datetime
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 
+import pandas
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 start_date = datetime.date(1920, 1, 1)
 file_name = 'wine3.xlsx'
