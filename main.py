@@ -2,50 +2,70 @@ import collections
 import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
+import click
 import pandas
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-start_date = datetime.date(1920, 1, 1)
-file_name = 'wine3.xlsx'
-sheet_name = 'Лист1'
-sort_column = 'Категория'
 
-env = Environment(
-    loader=FileSystemLoader('.'),
-    autoescape=select_autoescape(['html', 'xml'])
-)
-template = env.get_template('template.html')
+def years_declension(year):
+    ends_with_five_to_twenty = year % 100 in range(5, 20) and 'лет'
+    ends_with_one = 1 == year % 10 and 'год'
+    ends_with_two_to_four = year % 10 in (2, 3, 4) and 'года'
+    others = 'лет'
 
-delta = datetime.date.today().year - start_date.year
-
-wines = pandas.read_excel(
-    file_name,
-    sheet_name=sheet_name,
-    na_values='nan',
-    keep_default_na=False).to_dict(orient='records')
-
-wine_categories = collections.defaultdict(list)
-
-for wine in wines:
-    wine_categories[wine[sort_column]].append(wine)
-
-wine_categories = collections.OrderedDict(sorted(wine_categories.items()))
+    return ends_with_five_to_twenty or\
+        ends_with_one or\
+        ends_with_two_to_four or\
+        others
 
 
-def years_declension(age_to): return (
-    (age_to % 100 in range(5, 20)) and 'лет' or
-    (1 in (age_to, (diglast := age_to % 10))) and 'год' or
-    ({age_to, diglast} & {2, 3, 4}) and 'года' or 'лет')
+@click.command()
+@click.option('--file', required=True,
+              type=click.Path(exists=True),
+              default='wine.xlsx',
+              help='Path to xlsx data file')
+@click.option('--sheet', required=True,
+              default='Лист1',
+              help='Excel file sheet')
+
+def main(file, sheet):
+    year_foundation = 1920
+    sort_column = 'Категория'
+
+    env = Environment(
+        loader=FileSystemLoader('.'),
+        autoescape=select_autoescape(['html', 'xml'])
+    )
+
+    template = env.get_template('template.html')
+
+    company_years = datetime.date.today().year - year_foundation
+
+    wines = pandas.read_excel(
+        file,
+        sheet_name=sheet,
+        na_values='nan',
+        keep_default_na=False).to_dict(orient='records')
+
+    wine_categories = collections.defaultdict(list)
+
+    for wine in wines:
+        wine_categories[wine[sort_column]].append(wine)
+
+    wine_categories = collections.OrderedDict(sorted(wine_categories.items()))
+
+    rendered_page = template.render(
+        company_years=company_years,
+        years_declension=years_declension(company_years),
+        wine_categories=wine_categories,
+    )
+
+    with open('index.html', 'w', encoding="utf8") as file:
+        file.write(rendered_page)
+
+    server = HTTPServer(('0.0.0.0', 8000), SimpleHTTPRequestHandler)
+    server.serve_forever()
 
 
-rendered_page = template.render(
-    delta_years=delta,
-    years_declension=years_declension(delta),
-    wine_categories=wine_categories,
-)
-
-with open('index.html', 'w', encoding="utf8") as file:
-    file.write(rendered_page)
-
-server = HTTPServer(('0.0.0.0', 8000), SimpleHTTPRequestHandler)
-server.serve_forever()
+if __name__ == '__main__':
+    main()
