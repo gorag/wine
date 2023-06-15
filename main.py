@@ -7,7 +7,7 @@ import pandas
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
-def years_declension(year):
+def get_year_declination(year):
     ends_with_five_to_twenty = year % 100 in range(5, 20) and 'лет'
     ends_with_one = 1 == year % 10 and 'год'
     ends_with_two_to_four = year % 10 in (2, 3, 4) and 'года'
@@ -29,7 +29,7 @@ def years_declension(year):
               help='Excel file sheet')
 
 def main(file, sheet):
-    year_foundation = 1920
+    foundation_year = 1920
     sort_column = 'Категория'
 
     env = Environment(
@@ -39,7 +39,7 @@ def main(file, sheet):
 
     template = env.get_template('template.html')
 
-    company_years = datetime.date.today().year - year_foundation
+    company_years = datetime.date.today().year - foundation_year
 
     wines = pandas.read_excel(
         file,
@@ -56,7 +56,7 @@ def main(file, sheet):
 
     rendered_page = template.render(
         company_years=company_years,
-        years_declension=years_declension(company_years),
+        years_declension=get_year_declination(company_years),
         wine_categories=wine_categories,
     )
 
